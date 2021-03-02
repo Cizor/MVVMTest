@@ -1,36 +1,21 @@
 package com.example.mvvmtest.data.repositories
 
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
+import com.example.mvvmtest.data.db.AppDatabase
+import com.example.mvvmtest.data.db.entities.User
 import com.example.mvvmtest.data.network.MyApi
-import okhttp3.ResponseBody
-import retrofit2.Call
-import retrofit2.Callback
+import com.example.mvvmtest.data.network.SafeApiRequest
+import com.example.mvvmtest.data.network.responses.AuthResponse
 import retrofit2.Response
 
-class UserRepository {
-    fun userLogin(email : String, password : String) : LiveData<String>{
-        val loginResponse = MutableLiveData<String>()
-
-        MyApi().userLogin(email, password)
-            .enqueue(object : Callback<ResponseBody>{
-                override fun onResponse(
-                    call: Call<ResponseBody>,
-                    response: Response<ResponseBody>
-                ) {
-                    if(response.isSuccessful){
-                        loginResponse.value = response.body()?.string()
-                    }else{
-                        loginResponse.value = response.errorBody()?.string()
-                    }
-                }
-
-                override fun onFailure(call: Call<ResponseBody>, t: Throwable) {
-                    loginResponse.value = t.message
-                }
-
-            })
-        return loginResponse
-
+class UserRepository(
+    private val api: MyApi,
+    private val db: AppDatabase
+) : SafeApiRequest(){
+    suspend fun userLogin(email : String, password : String) : AuthResponse{
+        return apiRequest { api.userLogin(email, password) }
     }
+
+    suspend fun saveUser(user : User) = db.getUserDao().upsert(user)
+
+    fun getUser() = db.getUserDao().getUser()
 }
